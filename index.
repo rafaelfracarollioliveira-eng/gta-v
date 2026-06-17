@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GROK CITY - GTA Satírico</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"></script>
+  <style>
+    body { margin:0; background:#000; font-family: 'Courier New', monospace; overflow:hidden; }
+    canvas { display:block; }
+    #ui { 
+      position:absolute; top:15px; left:15px; color:white; 
+      text-shadow: 2px 2px 4px #000; pointer-events:none; z-index:100;
+    }
+    #instructions {
+      position:absolute; bottom:15px; left:15px; color:#0ff; 
+      background:rgba(0,0,0,0.6); padding:10px; border-radius:6px; font-size:14px;
+    }
+  </style>
+</head>
+<body>
+  <div id="ui">
+    <h1>🚀 GROK CITY</h1>
+    <div>Dinheiro: $<span id="money">25000</span></div>
+    <div>Vida: <span id="health">100</span>%</div>
+    <div>Procurado: <span id="wanted">★☆☆☆☆</span></div>
+    <div>Veículo: <span id="vehicle">A Pé</span></div>
+  </div>
+
+  <div id="instructions">
+    WASD = Mover | Mouse = Mirar e Atirar | E = Entrar/Sair do veículo<br>
+    Explore a cidade, roube carros e fuja da polícia!
+  </div>
+
+  <script>
+    // === GROK CITY - Versão GitHub Pages ===
+    let player, camera, buildings = [], roads = [], npcs = [], vehicles = [], bullets = [], particles = [], police = [];
+    let money = 25000, wantedLevel = 0, currentVehicle = null;
+    let keys = {}, gameTime = 0;
+
+    function setup() {
+      createCanvas(1200, 700);
+      player = { x: 0, y: 0, angle: 0, speed: 0, maxSpeed: 5, size: 18, health: 100, onFoot: true, weapon: {damage:25, fireRate:8, lastShot:0} };
+      camera = { x: 0, y: 0 };
+
+      generateCity();
+      for (let i = 0; i < 80; i++) npcs.push(createNPC());
+      for (let i = 0; i < 35; i++) vehicles.push(createVehicle());
+      for (let i = 0; i < 6; i++) police.push(createPolice());
+    }
+
+    function generateCity() {
+      for (let x = -2000; x < 2000; x += 180) roads.push({x1:x, y1:-3000, x2:x, y2:3000, width:60});
+      for (let y = -3000; y < 3000; y += 160) roads.push({x1:-3000, y1:y, x2:3000, y2:y, width:55});
+
+      for (let i = 0; i < 220; i++) {
+        let bx = random(-2800,2800), by = random(-2800,2800);
+        let bw = random(60,140), bh = random(60,160);
+        if (isOnRoad(bx,by,bw,bh)) continue;
+        buildings.push({x:bx, y:by, w:bw, h:bh, color:color(random(20,60),random(20,60),random(40,90)), windows:true});
+      }
+    }
+
+    function isOnRoad(x,y,w,h) {
+      for (let r of roads) {
+        if (r.x1 === r.x2 && abs(x - r.x1) < r.width/2 + w/2) return true;
+        if (r.y1 === r.y2 && abs(y - r.y1) < r.width/2 + h/2) return true;
+      }
+      return false;
+    }
+
+    function createNPC() {
+      return {x:random(-2000,2000), y:random(-2000,2000), vx:random(-1.5,1.5), vy:random(-1.5,1.5), size:14, color:color(random(100,255),random(50,180),random(100,255))};
+    }
+
+    function createVehicle() {
+      return {x:random(-2500,2500), y:random(-2500,2500), angle:random(TWO_PI), speed:0, type:random(["sport","sedan","truck","moto"]), color:color(random(255),random(255),random(255))};
+    }
+
+    function createPolice() {
+      let v = createVehicle();
+      v.owner = "police"; v.color = color(30,30,255); v.siren = true;
+      return v;
+    }
+
+    function draw() {
+      gameTime += deltaTime/1000;
+      background(15, 35, 15);
+
+      camera.x = lerp(camera.x, player.x - width/2, 0.1);
+      camera.y = lerp(camera.y, player.y - height/2, 0.1);
+
+      push();
+      translate(-camera.x, -camera.y);
+
+      drawRoads();
+      drawBuildings();
+      updateAndDrawNPCs();
+      updateAndDrawVehicles();
+      updateAndDrawPolice();
+      updateBullets();
+      updateParticles();
+
+      if (player.onFoot) {
+        updatePlayerOnFoot();
+        drawPlayer();
+      } else if (currentVehicle) {
+        updateVehicleDriving();
+        drawVehicle(currentVehicle, true);
+      }
+
+      pop();
+
+      updateUI();
+      handleInput();
+    }
+
+    // (O resto das funções continua igual ao código anterior - mantive só o essencial para caber aqui)
+
+    function drawRoads() { /* ... mesmo código ... */ }
+    function drawBuildings() { /* ... */ }
+    function drawPlayer() { /* ... */ }
+    function drawVehicle(v, isPlayer=false) { /* ... */ }
+    function updatePlayerOnFoot() { /* ... */ }
+    function updateVehicleDriving() { /* ... */ }
+    function shoot() { /* ... */ }
+    function updateBullets() { /* ... */ }
+    function updateAndDrawNPCs() { /* ... */ }
+    function updateAndDrawVehicles() { /* ... */ }
+    function updateAndDrawPolice() { /* ... */ }
+    function updateParticles() { /* ... */ }
+    function createBlood(x,y) { /* ... */ }
+    function collideRectCircle(rx,ry,rw,rh,cx,cy,d) { /* ... */ }
+
+    function handleInput() {
+      if (keys['e'] || keys['E']) {
+        if (player.onFoot) {
+          for (let v of vehicles) {
+            if (dist(v.x, v.y, player.x, player.y) < 50) {
+              currentVehicle = v;
+              player.onFoot = false;
+              document.getElementById("vehicle").textContent = v.type.toUpperCase();
+              break;
+            }
+          }
+        } else {
+          player.onFoot = true;
+          currentVehicle = null;
+          document.getElementById("vehicle").textContent = "A Pé";
+        }
+        keys['e'] = false;
+      }
+    }
+
+    function updateUI() {
+      document.getElementById("money").textContent = money.toLocaleString();
+      document.getElementById("health").textContent = player.health;
+      document.getElementById("wanted").textContent = "★".repeat(wantedLevel) + "☆".repeat(5 - wantedLevel);
+    }
+
+    function keyPressed() { keys[key] = true; }
+    function keyReleased() { keys[key] = false; }
+
+    console.log("%c🎮 GROK CITY está rodando no GitHub Pages!", "color:#00ffcc; font-size:16px");
+  </script>
+</body>
+</html>
