@@ -33,62 +33,63 @@
   </div>
 
   <script>
-    // === GROK CITY - Versão GitHub Pages ===
     let player, camera, buildings = [], roads = [], npcs = [], vehicles = [], bullets = [], particles = [], police = [];
-    let money = 25000, wantedLevel = 0, currentVehicle = null;
+    let money = 25000, wantedLevel = 1, currentVehicle = null;
     let keys = {}, gameTime = 0;
 
     function setup() {
-      createCanvas(1200, 700);
-      player = { x: 0, y: 0, angle: 0, speed: 0, maxSpeed: 5, size: 18, health: 100, onFoot: true, weapon: {damage:25, fireRate:8, lastShot:0} };
+      createCanvas(windowWidth, windowHeight);
+      player = { x: 0, y: 0, angle: 0, speed: 0, maxSpeed: 4, size: 18, health: 100, onFoot: true, weapon: {damage:25, fireRate:15, lastShot:0} };
       camera = { x: 0, y: 0 };
 
       generateCity();
-      for (let i = 0; i < 80; i++) npcs.push(createNPC());
-      for (let i = 0; i < 35; i++) vehicles.push(createVehicle());
-      for (let i = 0; i < 6; i++) police.push(createPolice());
+      for (let i = 0; i < 60; i++) npcs.push(createNPC());
+      for (let i = 0; i < 30; i++) vehicles.push(createVehicle());
+      for (let i = 0; i < 5; i++) police.push(createPolice());
     }
 
     function generateCity() {
-      for (let x = -2000; x < 2000; x += 180) roads.push({x1:x, y1:-3000, x2:x, y2:3000, width:60});
-      for (let y = -3000; y < 3000; y += 160) roads.push({x1:-3000, y1:y, x2:3000, y2:y, width:55});
+      for (let x = -2000; x < 2000; x += 400) roads.push({x1:x, y1:-3000, x2:x, y2:3000, width:80, type:'vertical'});
+      for (let y = -3000; y < 3000; y += 400) roads.push({x1:-3000, y1:y, x2:3000, y2:y, width:80, type:'horizontal'});
 
-      for (let i = 0; i < 220; i++) {
-        let bx = random(-2800,2800), by = random(-2800,2800);
-        let bw = random(60,140), bh = random(60,160);
-        if (isOnRoad(bx,by,bw,bh)) continue;
-        buildings.push({x:bx, y:by, w:bw, h:bh, color:color(random(20,60),random(20,60),random(40,90)), windows:true});
+      for (let i = 0; i < 150; i++) {
+        let bx = random(-2500, 2500), by = random(-2500, 2500);
+        let bw = random(80, 150), bh = random(80, 150);
+        if (isOnRoad(bx, by, bw, bh)) continue;
+        buildings.push({x:bx, y:by, w:bw, h:bh, color:color(random(40,70), random(40,70), random(50,90))});
       }
     }
 
-    function isOnRoad(x,y,w,h) {
+    function isOnRoad(x, y, w, h) {
       for (let r of roads) {
-        if (r.x1 === r.x2 && abs(x - r.x1) < r.width/2 + w/2) return true;
-        if (r.y1 === r.y2 && abs(y - r.y1) < r.width/2 + h/2) return true;
+        if (r.type === 'vertical' && abs(x - r.x1) < r.width/2 + w/2) return true;
+        if (r.type === 'horizontal' && abs(y - r.y1) < r.width/2 + h/2) return true;
       }
       return false;
     }
 
     function createNPC() {
-      return {x:random(-2000,2000), y:random(-2000,2000), vx:random(-1.5,1.5), vy:random(-1.5,1.5), size:14, color:color(random(100,255),random(50,180),random(100,255))};
+      return {x:random(-2000,2000), y:random(-2000,2000), vx:random(-1,1), vy:random(-1,1), size:14, health:50, color:color(random(100,255),random(50,180),random(100,255))};
     }
 
     function createVehicle() {
-      return {x:random(-2500,2500), y:random(-2500,2500), angle:random(TWO_PI), speed:0, type:random(["sport","sedan","truck","moto"]), color:color(random(255),random(255),random(255))};
+      return {x:random(-2500,2500), y:random(-2500,2500), angle:random(TWO_PI), speed:random(1,3), maxSpeed:7, type:random(["sport","sedan","truck"]), color:color(random(255),random(255),random(255)), w:45, h:25};
     }
 
     function createPolice() {
       let v = createVehicle();
-      v.owner = "police"; v.color = color(30,30,255); v.siren = true;
+      v.owner = "police"; v.color = color(20,20,220); v.siren = true; v.maxSpeed = 8;
       return v;
     }
 
     function draw() {
       gameTime += deltaTime/1000;
-      background(15, 35, 15);
+      background(30, 30, 30);
 
-      camera.x = lerp(camera.x, player.x - width/2, 0.1);
-      camera.y = lerp(camera.y, player.y - height/2, 0.1);
+      let targetX = player.onFoot ? player.x : currentVehicle.x;
+      let targetY = player.onFoot ? player.y : currentVehicle.y;
+      camera.x = lerp(camera.x, targetX - width/2, 0.1);
+      camera.y = lerp(camera.y, targetY - height/2, 0.1);
 
       push();
       translate(-camera.x, -camera.y);
@@ -106,62 +107,185 @@
         drawPlayer();
       } else if (currentVehicle) {
         updateVehicleDriving();
-        drawVehicle(currentVehicle, true);
+        drawVehicle(currentVehicle);
       }
 
       pop();
 
       updateUI();
       handleInput();
+      
+      if (mouseIsPressed) shoot();
     }
 
-    // (O resto das funções continua igual ao código anterior - mantive só o essencial para caber aqui)
-
-    function drawRoads() { /* ... mesmo código ... */ }
-    function drawBuildings() { /* ... */ }
-    function drawPlayer() { /* ... */ }
-    function drawVehicle(v, isPlayer=false) { /* ... */ }
-    function updatePlayerOnFoot() { /* ... */ }
-    function updateVehicleDriving() { /* ... */ }
-    function shoot() { /* ... */ }
-    function updateBullets() { /* ... */ }
-    function updateAndDrawNPCs() { /* ... */ }
-    function updateAndDrawVehicles() { /* ... */ }
-    function updateAndDrawPolice() { /* ... */ }
-    function updateParticles() { /* ... */ }
-    function createBlood(x,y) { /* ... */ }
-    function collideRectCircle(rx,ry,rw,rh,cx,cy,d) { /* ... */ }
-
-    function handleInput() {
-      if (keys['e'] || keys['E']) {
-        if (player.onFoot) {
-          for (let v of vehicles) {
-            if (dist(v.x, v.y, player.x, player.y) < 50) {
-              currentVehicle = v;
-              player.onFoot = false;
-              document.getElementById("vehicle").textContent = v.type.toUpperCase();
-              break;
-            }
-          }
-        } else {
-          player.onFoot = true;
-          currentVehicle = null;
-          document.getElementById("vehicle").textContent = "A Pé";
-        }
-        keys['e'] = false;
+    function drawRoads() {
+      fill(60); noStroke();
+      for (let r of roads) {
+        if (r.type === 'vertical') rect(r.x1 - r.width/2, r.y1, r.width, r.y2 - r.y1);
+        else rect(r.x1, r.y1 - r.width/2, r.x2 - r.x1, r.width);
       }
     }
 
-    function updateUI() {
-      document.getElementById("money").textContent = money.toLocaleString();
-      document.getElementById("health").textContent = player.health;
-      document.getElementById("wanted").textContent = "★".repeat(wantedLevel) + "☆".repeat(5 - wantedLevel);
+    function drawBuildings() {
+      stroke(15); strokeWeight(3);
+      for (let b of buildings) {
+        fill(b.color);
+        rect(b.x, b.y, b.w, b.h);
+        fill(255, 255, 150, 150);
+        for(let wx = b.x + 15; wx < b.x + b.w - 15; wx += 30) {
+          for(let wy = b.y + 15; wy < b.y + b.h - 15; wy += 40) {
+            rect(wx, wy, 10, 15);
+          }
+        }
+      }
     }
 
-    function keyPressed() { keys[key] = true; }
-    function keyReleased() { keys[key] = false; }
+    function drawPlayer() {
+      push();
+      translate(player.x, player.y);
+      rotate(player.angle);
+      
+      fill(220, 160, 130); stroke(0); strokeWeight(1.5);
+      ellipse(0, -6, 6, 6); ellipse(0, 6, 6, 6);
+      
+      fill(50, 100, 200);
+      ellipse(0, 0, player.size, player.size);
+      
+      fill(50); rect(4, 2, 8, 4);
+      pop();
+    }
 
-    console.log("%c🎮 GROK CITY está rodando no GitHub Pages!", "color:#00ffcc; font-size:16px");
-  </script>
-</body>
-</html>
+    function drawVehicle(v) {
+      push();
+      translate(v.x, v.y);
+      rotate(v.angle);
+      fill(v.color); stroke(0); strokeWeight(2);
+      rect(-v.w/2, -v.h/2, v.w, v.h, 4);
+      
+      fill(150, 200, 255); noStroke();
+      rect(v.w/6, -v.h/2 + 3, v.w/5, v.h - 6);
+      rect(-v.w/3, -v.h/2 + 3, v.w/6, v.h - 6);
+
+      if (v.siren && frameCount % 10 < 5) {
+        fill(255, 0, 0); rect(-5, -v.h/2, 10, v.h);
+      }
+      pop();
+    }
+
+    function updatePlayerOnFoot() {
+      let moveX = 0, moveY = 0;
+      if (keys['w'] || keys['W']) moveY = -1;
+      if (keys['s'] || keys['S']) moveY = 1;
+      if (keys['a'] || keys['A']) moveX = -1;
+      if (keys['d'] || keys['D']) moveX = 1;
+
+      if (moveX !== 0 || moveY !== 0) {
+        let angle = atan2(moveY, moveX);
+        let nextX = player.x + cos(angle) * player.maxSpeed;
+        let nextY = player.y + sin(angle) * player.maxSpeed;
+        
+        if (!checkBuildingCollision(nextX, nextY, player.size/2)) {
+          player.x = nextX;
+          player.y = nextY;
+        }
+      }
+      player.angle = atan2(mouseY - (player.y - camera.y), mouseX - (player.x - camera.x));
+    }
+
+    function updateVehicleDriving() {
+      if (keys['w'] || keys['W']) currentVehicle.speed = min(currentVehicle.speed + 0.1, currentVehicle.maxSpeed);
+      else if (keys['s'] || keys['S']) currentVehicle.speed = max(currentVehicle.speed - 0.08, -currentVehicle.maxSpeed/2);
+      else currentVehicle.speed *= 0.96;
+
+      if (keys['a'] || keys['A']) currentVehicle.angle -= 0.04;
+      if (keys['d'] || keys['D']) currentVehicle.angle += 0.04;
+
+      let nextX = currentVehicle.x + cos(currentVehicle.angle) * currentVehicle.speed;
+      let nextY = currentVehicle.y + sin(currentVehicle.angle) * currentVehicle.speed;
+
+      if (!checkBuildingCollision(nextX, nextY, 15)) {
+        currentVehicle.x = nextX;
+        currentVehicle.y = nextY;
+      } else {
+        currentVehicle.speed = -currentVehicle.speed * 0.4;
+      }
+      
+      player.x = currentVehicle.x;
+      player.y = currentVehicle.y;
+    }
+
+    function checkBuildingCollision(cx, cy, radius) {
+      for (let b of buildings) {
+        if (cx + radius > b.x && cx - radius < b.x + b.w && cy + radius > b.y && cy - radius < b.y + b.h) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function shoot() {
+      if (frameCount - player.weapon.lastShot > player.weapon.fireRate && player.onFoot) {
+        let angle = player.angle;
+        bullets.push({ x: player.x + cos(angle)*15, y: player.y + sin(angle)*15, vx: cos(angle)*12, vy: sin(angle)*12, life: 60 });
+        player.weapon.lastShot = frameCount;
+        if(wantedLevel < 5 && random() < 0.1) wantedLevel++;
+      }
+    }
+
+    function updateBullets() {
+      for (let i = bullets.length - 1; i >= 0; i--) {
+        let b = bullets[i];
+        b.x += b.vx; b.y += b.vy; b.life--;
+
+        fill(255, 255, 0); noStroke();
+        ellipse(b.x, b.y, 5, 5);
+
+        for (let npc of npcs) {
+          if (dist(b.x, b.y, npc.x, npc.y) < npc.size) {
+            createBlood(npc.x, npc.y);
+            npc.x = random(-2000,2000); npc.y = random(-2000,2000); // Respawn simples
+            bullets.splice(i, 1); money += 100;
+            break;
+          }
+        }
+        if (b.life <= 0) bullets.splice(i, 1);
+      }
+    }
+
+    function updateAndDrawNPCs() {
+      for (let npc of npcs) {
+        npc.x += npc.vx; npc.y += npc.vy;
+        if (random() < 0.02) { npc.vx = random(-1, 1); npc.vy = random(-1, 1); }
+        fill(npc.color); stroke(0); strokeWeight(1);
+        ellipse(npc.x, npc.y, npc.size, npc.size);
+      }
+    }
+
+    function updateAndDrawVehicles() {
+      for (let v of vehicles) {
+        if (v !== currentVehicle) {
+          v.x += cos(v.angle) * v.speed; v.y += sin(v.angle) * v.speed;
+          if (random() < 0.01) v.angle += random(-0.5, 0.5);
+          if (checkBuildingCollision(v.x, v.y, 10)) v.angle += PI;
+          drawVehicle(v);
+        }
+      }
+    }
+
+    function updateAndDrawPolice() {
+      for (let p of police) {
+        if (p !== currentVehicle) {
+          let target = player.onFoot ? player : currentVehicle;
+          if (wantedLevel > 0 && dist(p.x, p.y, target.x, target.y) < 600) {
+            p.angle = atan2(target.y - p.y, target.x - p.x);
+            p.speed = p.maxSpeed;
+          } else {
+            p.speed = 2;
+            if (random() < 0.01) p.angle += random(-1, 1);
+          }
+          p.x += cos(p.angle) * p.speed; p.y += sin(p.angle) * p.speed;
+          drawVehicle(p);
+
+          if (dist(p.x, p.y, target.x, target.y) < 40 && wantedLevel > 0) {
+            player.health = max(0, player.health - 1);
+            if (player.health === 0) {
